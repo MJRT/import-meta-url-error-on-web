@@ -1,0 +1,46 @@
+import React, { useEffect, useState } from 'react'
+import { authToken } from '../auth'
+import { DEBUG_MODE, ELECTRIC_URL } from '../config'
+import { Electric, schema } from '../generated/client'
+
+import * as SQLite from 'expo-sqlite/next'
+}: {
+  children: React.ReactNode
+}) => {
+  const [electric, setElectric] = useState<Electric>()
+
+  useEffect(() => {
+    let isMounted = true
+
+    const init = async () => {
+      const config = {
+        debug: DEBUG_MODE,
+        url: ELECTRIC_URL,
+      }
+
+      const conn = SQLite.openDatabaseSync('electric.db')
+      const client = await electrify(conn, schema, config)
+      await client.connect(authToken())
+
+      if (!isMounted) {
+        return
+      }
+
+      setElectric(client)
+    }
+
+    init()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  if (electric === undefined) {
+    return null
+  }
+
+  return <ElectricProvider db={electric}>{children}</ElectricProvider>
+}
+
+export { ElectricProviderComponent as ElectricProvider, useElectric }
